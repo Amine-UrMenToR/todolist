@@ -39,7 +39,7 @@ pipeline {
         stage('Package Docker') {
             steps {
                 echo 'Building Docker image...'
-                sh 'docker build -t my-dockerhub-username/todolistapp:latest ./publish'
+                sh 'docker build -t amineurmento/todolistapp:latest ./publish'
             }
         }
         stage('Push to Docker Hub') {
@@ -47,7 +47,7 @@ pipeline {
                 echo 'Pushing Docker image to Docker Hub...'
                 sh '''
                 echo "$DOCKER_CREDENTIALS_PSW" | docker login -u "$DOCKER_CREDENTIALS_USR" --password-stdin
-                docker push my-dockerhub-username/todolistapp:latest
+                docker push amineurmentor/todolistapp:latest
                 '''
             }
         }

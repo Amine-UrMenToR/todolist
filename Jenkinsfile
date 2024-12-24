@@ -1,58 +1,60 @@
 pipeline {
     agent any
+
     environment {
-        DOTNET_HOME = tool name: 'dotnet', type: 'com.cloudbees.jenkins.plugins.customtools.CustomTool'
-        PATH = "${env.DOTNET_HOME}:${env.PATH}"
-        DOCKER_CREDENTIALS = credentials('0d6bc306-75cb-4a97-b33e-55e074067a31') // Replace with your Docker Hub credentials ID
+        DOTNET_PATH = '/usr/share/dotnet' // Update this to the path where .NET is installed
+        PATH = "${env.DOTNET_PATH}:${env.PATH}"
     }
+
     stages {
-        stage('Checkout') {
+        stage('Clone Repository') {
             steps {
-                echo 'Checking out code...'
                 checkout scm
             }
         }
+
         stage('Restore Dependencies') {
             steps {
-                echo 'Restoring .NET dependencies...'
-                sh 'dotnet restore ToDoListApp.sln'
+                sh 'dotnet restore'
             }
         }
-        stage('Build') {
+
+        stage('Build Solution') {
             steps {
-                echo 'Building the project...'
-                sh 'dotnet build ToDoListApp.sln --no-restore -c Release'
+                sh 'dotnet build --no-restore'
             }
         }
-        stage('Test') {
+
+        stage('Run Tests') {
             steps {
-                echo 'Running tests...'
-                sh 'dotnet test ToDoListApp.sln --no-build --verbosity normal'
+                sh 'dotnet test --no-restore --no-build'
             }
         }
-        stage('Publish') {
+
+        stage('Publish Application') {
             steps {
-                echo 'Publishing the application...'
-                sh 'dotnet publish ToDoListApp.sln -c Release -o ./publish --no-build'
+                sh 'dotnet publish -c Release -o output'
             }
         }
-        stage('Package Docker') {
+
+        stage('Dockerize Application') {
             steps {
-                echo 'Building Docker image...'
-                sh 'docker build -t amineurmento/todolistapp:latest ./publish'
-            }
-        }
-        stage('Push to Docker Hub') {
-            steps {
-                echo 'Pushing Docker image to Docker Hub...'
-                sh '''
-                echo "$DOCKER_CREDENTIALS_PSW" | docker login -u "$DOCKER_CREDENTIALS_USR" --password-stdin
-                docker push amineurmentor/todolistapp:latest
-                '''
+                script {
+                    docker.withRegistry('https://registry.hub.docker.com', 'docker-hub-credentials-id') {
+                        sh '''
+                        docker build -t your-docker-image-name:latest .
+                        docker push your-docker-image-name:latest
+                        '''
+                    }
+                }
             }
         }
     }
+
     post {
+        always {
+            echo 'Pipeline execution completed!'
+        }
         success {
             echo 'Build and deployment succeeded!'
         }

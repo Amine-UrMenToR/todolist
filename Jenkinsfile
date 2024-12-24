@@ -29,7 +29,7 @@ pipeline {
             steps {
                 script {
                     docker.withRegistry('', 'dockerhub') {
-                        sh 'docker push your-docker-username/todolistapp'
+                        sh 'docker push amineurmentor/todolistapp'
                     }
                 }
             }

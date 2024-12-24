@@ -2,46 +2,82 @@ pipeline {
     agent any
 
     environment {
-        DOTNET_ROOT = "C:\\Program Files\\dotnet"
-        PATH = "${DOTNET_ROOT};${env.PATH}"
+        // Define the .NET installation path
+        DOTNET_ROOT = 'C:\\Program Files\\dotnet'
+        PATH = "${env.DOTNET_ROOT};${env.PATH}"
+    }
+
+    tools {
+        // Use .NET as a custom tool if set up in Jenkins
+        customTool 'dotnet'
     }
 
     stages {
-        stage('Restore') {
+        stage('Verify Environment') {
             steps {
-                echo 'Restoring dependencies...'
-                bat 'dotnet restore'
+                echo 'Verifying .NET installation...'
+                script {
+                    // Check .NET version to verify setup
+                    bat 'dotnet --version'
+                }
             }
         }
 
-        stage('Build') {
+        stage('Restore Dependencies') {
+            steps {
+                echo 'Restoring project dependencies...'
+                script {
+                    // Restore .NET project dependencies
+                    bat 'dotnet restore'
+                }
+            }
+        }
+
+        stage('Build Application') {
             steps {
                 echo 'Building the project...'
-                bat 'dotnet build --configuration Release'
+                script {
+                    // Build the .NET project
+                    bat 'dotnet build --no-restore'
+                }
             }
         }
 
-        stage('Test') {
+        stage('Run Tests') {
             steps {
                 echo 'Running tests...'
-                bat 'dotnet test --no-build --verbosity normal'
+                script {
+                    // Execute unit tests
+                    bat 'dotnet test --no-build'
+                }
             }
         }
 
-        stage('Publish') {
+        stage('Publish Application') {
             steps {
                 echo 'Publishing the application...'
-                bat 'dotnet publish --configuration Release --output publish'
+                script {
+                    // Publish the application to the "publish" folder
+                    bat 'dotnet publish -c Release -o publish'
+                }
             }
         }
 
-        stage('Docker Build and Push') {
+        stage('Package with Docker') {
             steps {
-                echo 'Building Docker image and pushing to Docker Hub...'
+                echo 'Building Docker image...'
                 script {
-                    def dockerImage = docker.build("your-dockerhub-username/your-image-name:latest")
-                    docker.withRegistry('https://index.docker.io/v1/', 'docker-hub-credentials-id') {
-                        dockerImage.push()
+                    // Build a Docker image for the application
+                    bat 'docker build -t myapp:latest .'
+                }
+                echo 'Pushing Docker image to Docker Hub...'
+                script {
+                    // Push the Docker image to Docker Hub
+                    withCredentials([string(credentialsId: '0d6bc306-75cb-4a97-b33e-55e074067a31', variable: 'DOCKER_PASSWORD')]) {
+                        bat '''
+                        echo %DOCKER_PASSWORD% | docker login -u amineurmentor --password-stdin
+                        docker push myapp:latest
+                        '''
                     }
                 }
             }
@@ -49,11 +85,17 @@ pipeline {
     }
 
     post {
+        always {
+            echo 'Cleaning up workspace...'
+            deleteDir()
+        }
+
         success {
             echo 'Pipeline completed successfully!'
         }
+
         failure {
-            echo 'Pipeline failed. Check the logs for more details.'
+            echo 'Pipeline failed. Please check the logs for details.'
         }
     }
 }

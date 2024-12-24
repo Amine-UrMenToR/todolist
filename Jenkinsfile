@@ -2,49 +2,46 @@ pipeline {
     agent any
 
     environment {
-        DOTNET_PATH = '/usr/share/dotnet' // Update this to the path where .NET is installed
-        PATH = "${env.DOTNET_PATH}:${env.PATH}"
+        DOTNET_ROOT = "C:\\Program Files\\dotnet"
+        PATH = "${DOTNET_ROOT};${env.PATH}"
     }
 
     stages {
-        stage('Clone Repository') {
+        stage('Restore') {
             steps {
-                checkout scm
+                echo 'Restoring dependencies...'
+                bat 'dotnet restore'
             }
         }
 
-        stage('Restore Dependencies') {
+        stage('Build') {
             steps {
-                sh 'dotnet restore'
+                echo 'Building the project...'
+                bat 'dotnet build --configuration Release'
             }
         }
 
-        stage('Build Solution') {
+        stage('Test') {
             steps {
-                sh 'dotnet build --no-restore'
+                echo 'Running tests...'
+                bat 'dotnet test --no-build --verbosity normal'
             }
         }
 
-        stage('Run Tests') {
+        stage('Publish') {
             steps {
-                sh 'dotnet test --no-restore --no-build'
+                echo 'Publishing the application...'
+                bat 'dotnet publish --configuration Release --output publish'
             }
         }
 
-        stage('Publish Application') {
+        stage('Docker Build and Push') {
             steps {
-                sh 'dotnet publish -c Release -o output'
-            }
-        }
-
-        stage('Dockerize Application') {
-            steps {
+                echo 'Building Docker image and pushing to Docker Hub...'
                 script {
-                    docker.withRegistry('https://registry.hub.docker.com', 'docker-hub-credentials-id') {
-                        sh '''
-                        docker build -t your-docker-image-name:latest .
-                        docker push your-docker-image-name:latest
-                        '''
+                    def dockerImage = docker.build("your-dockerhub-username/your-image-name:latest")
+                    docker.withRegistry('https://index.docker.io/v1/', 'docker-hub-credentials-id') {
+                        dockerImage.push()
                     }
                 }
             }
@@ -52,14 +49,11 @@ pipeline {
     }
 
     post {
-        always {
-            echo 'Pipeline execution completed!'
-        }
         success {
-            echo 'Build and deployment succeeded!'
+            echo 'Pipeline completed successfully!'
         }
         failure {
-            echo 'Build or deployment failed. Check the logs for details.'
+            echo 'Pipeline failed. Check the logs for more details.'
         }
     }
 }

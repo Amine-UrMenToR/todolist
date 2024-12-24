@@ -1,0 +1,32 @@
+﻿<!DOCTYPE html>
+<html lang="en">
+<head>
+    <meta charset="UTF-8">
+    <meta name="viewport" content="width=device-width, initial-scale=1.0">
+    <title>@ViewData["Title"]</title>
+    <link rel="stylesheet" href="~/css/site.css" />
+    @* Add other stylesheets here *@
+</head>
+<body>
+    <header>
+        <nav>
+            <ul>
+                <li><a href="@Url.Action("Index", "Home")">Home</a></li>
+                <li><a href="@Url.Action("Index", "ToDo")">To-Do List</a></li>
+                @* Add other navigation items here *@
+            </ul>
+        </nav>
+    </header>
+
+    <main>
+        @RenderBody()  @* This will render the content of your views *@
+    </main>
+
+    <footer>
+        <p>&copy; @DateTime.Now.Year - My ASP.NET Core App</p>
+    </footer>
+
+    @* Scripts section - Only define this once to allow views to inject their scripts *@
+    @RenderSection("Scripts", required: false)
+</body>
+</html>
